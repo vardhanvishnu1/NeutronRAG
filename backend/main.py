@@ -6,11 +6,11 @@ from engine import RAGEngine
 import sys
 import os
 
-#C++ Path
+# C++ Path
 sys.path.append(os.path.join(os.getcwd(), "core"))
 import neutron_math 
-
-genai.configure(api_key="AIzaSyD7TMrfj_Avy01o8U0bp-HH5YLua-2D2Ow")
+import streamlit as st
+genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 llm_model = genai.GenerativeModel("gemini-2.5-flash")
 
 app = FastAPI()
