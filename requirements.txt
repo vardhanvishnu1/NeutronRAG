@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+streamlit
+sentence-transformers
+pymupdf
+pybind11
+requests
+numpy
+google-generativeai
+python-multipart
