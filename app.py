@@ -64,7 +64,7 @@ else:
 # Initialize shared components once per session
 if 'engine' not in st.session_state:
     st.session_state.engine = RAGEngine()
-    st.session_state.llm = genai.GenerativeModel("gemini-1.5-flash") # Stable version
+    st.session_state.llm = genai.GenerativeModel("gemini-2.5-flash") # Stable version
     st.session_state.kb = {"chunks": [], "vecs": [], "name": ""}
 
 #  SIDEBAR: INDEXING
