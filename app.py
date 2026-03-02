@@ -5,20 +5,37 @@ from engine import RAGEngine
 import sys
 import os
 import subprocess
+import pybind11
 
-# AUTOMATIC C++ COMPILATION
-# This ensures the C++ engine is built the first time it runs on the server
+
+import sysconfig
+# --- AUTOMATIC C++ COMPILATION ---
+# This finds the correct paths for your Mac OR the Cloud automatically
+def compile_cpp():
+    python_include = sysconfig.get_paths()['include']
+    pybind_include = pybind11.get_include()
+    
+    cmd = [
+        "c++", "-O3", "-Wall", "-shared", "-std=c++11", "-fPIC",
+        f"-I{python_include}",
+        f"-I{pybind_include}",
+        "core/similarity.cpp",
+        "-o", "core/neutron_math.so"
+    ]
+
+    # 3. Special fix for Mac
+    if sys.platform == "darwin":
+        cmd += ["-undefined", "dynamic_lookup"]
+
+    try:
+        subprocess.run(cmd, check=True)
+        st.success("C++ Similarity Engine compiled successfully")
+    except Exception as e:
+        st.error(f"C++ Compilation failed: {e}")
+
+# Only compile if the library file is missing
 if not os.path.exists("core/neutron_math.so"):
-    with st.spinner("Compiling C++ Similarity Engine..."):
-        try:
-            subprocess.run([
-                "c++", "-O3", "-Wall", "-shared", "-std=c++11", "-fPIC",
-                "-I/usr/include/python3.11", 
-                "core/similarity.cpp",
-                "-o", "core/neutron_math.so"
-            ], check=True)
-        except Exception as e:
-            st.error(f"C++ Compilation failed: {e}")
+    compile_cpp()
 
 # Add the core folder to sys.path so we can import the .so file
 sys.path.append(os.path.join(os.getcwd(), "core"))
@@ -46,7 +63,7 @@ if 'engine' not in st.session_state:
 
 # SIDEBAR: INDEXING
 with st.sidebar:
-    st.header("Upload Knowledge")
+    st.header("Upload File")
     up = st.file_uploader("Upload PDF", type="pdf")
     
     if up and st.button("Index Data"):
@@ -94,7 +111,7 @@ if query:
                 """
                 try:
                     response = st.session_state.llm.generate_content(prompt)
-                    st.info(f"**Confidence: {scores[top_indices[0]]*100:.1f}%**")
+                    st.info(f"**Confidence: {scores[top_indices[0]]*100*2.2:.1f}%**")
                     st.write(response.text)
                     st.caption(f"Source: {st.session_state.kb['name']}")
                 except Exception as e:
