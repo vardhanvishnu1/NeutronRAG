@@ -12,7 +12,6 @@ import sysconfig
 
 # DYNAMIC C++ COMPILATION
 def initialize_neutron_engine():
-    # Automatically finds headers for Python 3.13 on the Cloud or your Mac
     python_include = sysconfig.get_paths()['include']
     pybind_include = pybind11.get_include()
     
@@ -75,6 +74,7 @@ if 'engine' not in st.session_state:
 with st.sidebar:
     st.header("Upload Knowledge")
     up = st.file_uploader("Upload PDF", type="pdf")
+    
     
     if up and st.button("Index Data"):
         with st.spinner("Processing PDF with C++ Engine..."):
