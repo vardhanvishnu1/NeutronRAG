@@ -8,50 +8,49 @@ import subprocess
 import pybind11
 import sysconfig
 
-# --- 1. AUTOMATIC C++ COMPILATION & IMPORT ---
+#AUTOMATIC C++ COMPILATION & IMPORT
 # We do this BEFORE any other logic to ensure the module is ready
-def compile_and_import():
-    # Detect paths for the current environment (Mac 3.13 or Cloud 3.11)
+def compile_engine():
+    # Automatically finds the correct headers for Python 3.13
     python_include = sysconfig.get_paths()['include']
     pybind_include = pybind11.get_include()
     
-    # Define the output path
-    so_path = os.path.join(os.getcwd(), "core", "neutron_math.so")
+    # Path to the output file
+    so_file = os.path.join("core", "neutron_math.so")
     
-    # Only compile if the library file is missing
-    if not os.path.exists(so_path):
+    # Only compile if it doesn't exist
+    if not os.path.exists(so_file):
         cmd = [
             "c++", "-O3", "-Wall", "-shared", "-std=c++11", "-fPIC",
             f"-I{python_include}",
             f"-I{pybind_include}",
             "core/similarity.cpp",
-            "-o", "core/neutron_math.so"
+            "-o", so_file
         ]
-
+        
         # Add Mac-specific flag if running locally
         if sys.platform == "darwin":
             cmd += ["-undefined", "dynamic_lookup"]
 
         try:
             subprocess.run(cmd, check=True)
+            return True
         except Exception as e:
             st.error(f"C++ Compilation failed: {e}")
-            return None
+            return False
+    return True
 
-    # Add the core folder to sys.path so Python can find the .so file
-    sys.path.append(os.path.join(os.getcwd(), "core"))
-    
-    try:
-        import neutron_math 
-        return neutron_math
-    except ImportError:
-        st.error("Could not import neutron_math. Check your C++ compilation.")
-        return None
+# Run compilation
+compile_engine()
 
-# Run the compilation
-neutron_math = compile_and_import()
+# IMPORT LOGIC
+sys.path.append(os.path.join(os.getcwd(), "core"))
+try:
+    import neutron_math
+except ImportError:
+    neutron_math = None
 
-# --- 2. CONFIGURATION & UI SETUP ---
+#CONFIGURATION & UI SETUP
 st.set_page_config(page_title="NeutronRAG", page_icon="⚡")
 st.title("NeutronRAG")
 
