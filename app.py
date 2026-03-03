@@ -10,15 +10,21 @@ import sysconfig
 
 #AUTOMATIC C++ COMPILATION & IMPORT
 # We do this BEFORE any other logic to ensure the module is ready
+import streamlit as st
+import sys
+import os
+import subprocess
+import sysconfig
+import pybind11
+
+# DYNAMIC C++ COMPILATION
 def compile_engine():
-    # Automatically finds the correct headers for Python 3.13
+    # Dynamically find Python 3.13 headers on the server
     python_include = sysconfig.get_paths()['include']
     pybind_include = pybind11.get_include()
     
-    # Path to the output file
     so_file = os.path.join("core", "neutron_math.so")
     
-    # Only compile if it doesn't exist
     if not os.path.exists(so_file):
         cmd = [
             "c++", "-O3", "-Wall", "-shared", "-std=c++11", "-fPIC",
@@ -28,7 +34,7 @@ def compile_engine():
             "-o", so_file
         ]
         
-        # Add Mac-specific flag if running locally
+        # Add Mac flag only if running locally on your Darwin system
         if sys.platform == "darwin":
             cmd += ["-undefined", "dynamic_lookup"]
 
@@ -40,13 +46,15 @@ def compile_engine():
             return False
     return True
 
-# Run compilation
+# Run compilation before anything else
 compile_engine()
 
-# IMPORT LOGIC
+# Add core to path so Python can 'see' the .so file
 sys.path.append(os.path.join(os.getcwd(), "core"))
+
 try:
     import neutron_math
+    # Success The engine is now linked.
 except ImportError:
     neutron_math = None
 
