@@ -8,23 +8,21 @@ import subprocess
 import pybind11
 import sysconfig
 
-#AUTOMATIC C++ COMPILATION & IMPORT
-# We do this BEFORE any other logic to ensure the module is ready
-import streamlit as st
-import sys
-import os
-import subprocess
-import sysconfig
-import pybind11
+
 
 # DYNAMIC C++ COMPILATION
-def compile_engine():
-    # Dynamically find Python 3.13 headers on the server
+def initialize_neutron_engine():
+    # Automatically finds headers for Python 3.13 on the Cloud or your Mac
     python_include = sysconfig.get_paths()['include']
     pybind_include = pybind11.get_include()
     
+    # Ensure the 'core' directory exists
+    if not os.path.exists("core"):
+        os.makedirs("core")
+        
     so_file = os.path.join("core", "neutron_math.so")
     
+    # Force compilation if the file is missing
     if not os.path.exists(so_file):
         cmd = [
             "c++", "-O3", "-Wall", "-shared", "-std=c++11", "-fPIC",
@@ -34,29 +32,28 @@ def compile_engine():
             "-o", so_file
         ]
         
-        # Add Mac flag only if running locally on your Darwin system
+        # Add Mac-specific flag only if running locally
         if sys.platform == "darwin":
             cmd += ["-undefined", "dynamic_lookup"]
 
         try:
             subprocess.run(cmd, check=True)
-            return True
         except Exception as e:
             st.error(f"C++ Compilation failed: {e}")
-            return False
-    return True
+            return None
 
-# Run compilation before anything else
-compile_engine()
+    # Add core to sys.path so we can import the .so file
+    sys.path.append(os.path.join(os.getcwd(), "core"))
+    
+    try:
+        import neutron_math 
+        return neutron_math
+    except ImportError as e:
+        st.error(f"Import failed: {e}")
+        return None
 
-# Add core to path so Python can 'see' the .so file
-sys.path.append(os.path.join(os.getcwd(), "core"))
-
-try:
-    import neutron_math
-    # Success The engine is now linked.
-except ImportError:
-    neutron_math = None
+# Initialize the engine
+neutron_math = initialize_neutron_engine()
 
 #CONFIGURATION & UI SETUP
 st.set_page_config(page_title="NeutronRAG", page_icon="⚡")
